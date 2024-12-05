@@ -59,7 +59,7 @@ def load_secret_word():
     # armazenadas em um arquivo externo
 
     # abre o arquivo em modo de leitura (r)
-    file = open("words.txt", "r")
+    file = open("./1_intro_to_py/words.txt", "r")
 
     # lista para armazenar as palavras
     words = []
