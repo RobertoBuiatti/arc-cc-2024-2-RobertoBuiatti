@@ -1,9 +1,22 @@
+import random
+
 print("\n*********************************")
 print("Bem vindo ao jogo de Adivinhação!")
 print("*********************************\n")
 
-secret_number = 42
-tries = 3
+secret_number = random.randrange(1, 101)
+points = 1000
+tries = 0
+
+print("Defina o nível de dificuldade")
+level = int(input("(1)Fácil (2)Médio (3)Difícil\n"))
+
+if level == 1:
+    tries = 20
+elif level == 2:
+    tries = 10
+else:
+    tries = 5
 
 for run in range(tries):
     print("\nTentativa {} de {}".format(run+1, tries))
@@ -16,6 +29,7 @@ for run in range(tries):
 
     if guess < 1 or guess > 100:
         print("Você deve digitar um número entre 1 e 100!")
+        points -= 100
         continue
 
     if correct:
@@ -27,4 +41,7 @@ for run in range(tries):
         elif smaller:
             print("Errrrooouuu! O seu chute foi menor que o número secreto.")
 
+        points -= abs(secret_number - guess)
+
+print(f"Pontuação: {points}")
 print("\nFim do Jogo!")
