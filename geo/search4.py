@@ -58,6 +58,7 @@ def geocode(address):
         print(f"Erro de rede: {e}")
     except Exception as e:
         print(f"Ocorreu um erro inesperado: {e}")
+        
 
 if __name__ == '__main__':
     geocode('Belarmino Vilela Junqueira, Ituiutaba, MG')
