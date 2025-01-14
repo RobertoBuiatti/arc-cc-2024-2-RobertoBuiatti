@@ -12,7 +12,6 @@ dificuldade = None
 num_jogadores = 0
 lock = threading.Lock()  # Lock para evitar condições de corrida
 
-
 def recvall(sock):
     """Recebe uma mensagem do cliente."""
     try:
@@ -23,7 +22,6 @@ def recvall(sock):
     except Exception as e:
         print(f"Erro ao receber dados: {e}")
         return None
-
 
 def cliente(conn, client_address):
     """Gerencia a conexão de cada cliente."""
@@ -53,7 +51,7 @@ def cliente(conn, client_address):
                 if len(jogadores) == num_jogadores:
                     break
             conn.sendall("Aguardando outros jogadores...\n".encode("utf-8"))
-            threading.Event().wait(2)
+            threading.Event().wait(200)
 
         # Escolha da dificuldade (apenas pelo primeiro jogador)
         if dificuldade is None:
@@ -107,7 +105,6 @@ def cliente(conn, client_address):
             jogadores[:] = [(name, sock) for name, sock in jogadores if sock != conn]
         conn.close()
 
-
 def broadcast(message):
     """Envia uma mensagem para todos os jogadores."""
     with lock:
@@ -117,53 +114,49 @@ def broadcast(message):
             except Exception as e:
                 print(f"Erro ao enviar mensagem para um cliente: {e}")
 
-
 def game():
     """Inicia o jogo de adivinhação."""
-    numero_secreto = random.randint(1, 200)
-    tentativas_restantes = {1: 30, 2: 20, 3: 10}[dificuldade]
+    numero_secreto = random.randint(1, 50)
+    tentativas_totais = {1: 30, 2: 20, 3: 10}[dificuldade]
+    tentativas_restantes = {player_name: tentativas_totais for player_name, _ in jogadores}
     print(f"Número secreto gerado: {numero_secreto}")
 
-    for rodada in range(tentativas_restantes):
+    while any(tentativas > 0 for tentativas in tentativas_restantes.values()):
         for player_name, client_socket in jogadores:
-            try:
-                client_socket.sendall(
-                    f"{player_name}, digite um número (1 a 200): ".encode("utf-8")
-                )
-                guess = int(client_socket.recv(MAX_BYTES).decode("utf-8").strip())
-                print(f"{player_name} tentou: {guess}")
-
-                if guess == numero_secreto:
-                    broadcast(
-                        f"{player_name} acertou o número secreto na rodada {rodada + 1}! Fim do jogo.\n"
+            if tentativas_restantes[player_name] > 0:
+                try:
+                    client_socket.sendall(
+                        f"{player_name}, digite um número (1 a 50). Você tem {tentativas_restantes[player_name]} tentativas restantes: ".encode("utf-8")
                     )
-                    pontuacoes[player_name] += 100  # Bônus por acertar
-                    score()
-                    final()
-                    return
-                elif guess < numero_secreto:
-                    client_socket.sendall("O número secreto é maior!\n".encode("utf-8"))
-                else:
-                    client_socket.sendall("O número secreto é menor!\n".encode("utf-8"))
+                    guess = int(client_socket.recv(MAX_BYTES).decode("utf-8").strip())
+                    print(f"{player_name} tentou: {guess}")
 
-                # Reduz a pontuação, mas impede valores negativos
-                pontuacoes[player_name] = max(
-                    0, pontuacoes[player_name] - abs(numero_secreto - guess)
-                )
+                    tentativas_restantes[player_name] -= 1
+                    pontuacoes[player_name] -= 1
 
-            except ValueError:
-                client_socket.sendall(
-                    "Entrada inválida. Digite um número entre 1 e 200.\n".encode(
-                        "utf-8"
+                    if guess == numero_secreto:
+                        broadcast(
+                            f"{player_name} acertou o número secreto! Fim do jogo.\n"
+                        )
+                        pontuacoes[player_name] += 100  # Bônus por acertar
+                        score()
+                        final()
+                        return
+                    elif guess < numero_secreto:
+                        client_socket.sendall("O número secreto é maior!\n".encode("utf-8"))
+                    else:
+                        client_socket.sendall("O número secreto é menor!\n".encode("utf-8"))
+
+                except ValueError:
+                    client_socket.sendall(
+                        "Entrada inválida. Digite um número entre 1 e 50.\n".encode("utf-8")
                     )
-                )
-            except Exception as e:
-                print(f"Erro ao receber tentativa de {player_name}: {e}")
+                except Exception as e:
+                    print(f"Erro ao receber tentativa de {player_name}: {e}")
 
     broadcast("Fim do jogo! Ninguém acertou o número secreto.\n")
     score()
     final()
-
 
 def score():
     """Envia e exibe as pontuações finais."""
@@ -174,7 +167,6 @@ def score():
     broadcast(scores_message)
     print(scores_message)
 
-
 def final():
     """Encerra o jogo e as conexões."""
     broadcast("FIM_DO_JOGO")
@@ -184,7 +176,6 @@ def final():
                 client_socket.close()
             except Exception as e:
                 print(f"Erro ao fechar conexão com cliente: {e}")
-
 
 def main():
     """Função principal do servidor."""
@@ -213,7 +204,6 @@ def main():
         print(f"Erro no servidor: {e}")
     finally:
         server_socket.close()
-
 
 if __name__ == "__main__":
     main()
